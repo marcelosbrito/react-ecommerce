@@ -8,6 +8,11 @@ import Review from './Review';
 const stripePromise = loadStripe(process.env.REACT_APP_STRIPE_PUBLIC_KEY);
 
 const PaymentForm = ({ checkoutToken, nextStep, backStep, shippingData, onCaptureCheckout }) => {
+
+    const shippingFilter = checkoutToken.live.shipping.available_options;
+    const shippingId = shippingFilter.filter(option => option["id"] === shippingData.shippingOption)
+    const shippingCost = shippingId[0]["price"];
+    let total = parseFloat(checkoutToken.live.subtotal.raw + shippingCost.raw).toFixed(2);
     
     const handleSubmit = async (event, elements, stripe) => {
         event.preventDefault();
@@ -24,7 +29,12 @@ const PaymentForm = ({ checkoutToken, nextStep, backStep, shippingData, onCaptur
         const orderData = {
             line_items: checkoutToken.live.line_items,
             customer: { firstname: shippingData.firstName, lastname: shippingData.lastName, email: shippingData.email },
-            shipping: { name: 'Primary', street: shippingData.address1, town_city: shippingData.city, county_state: shippingData.shippingSubdivision, postal_zip_code: shippingData.zip, country: shippingData.shippingCountry },
+            shipping: { name: 'Primary', 
+                        street: shippingData.address1, 
+                        town_city: shippingData.city, 
+                        county_state: shippingData.shippingSubdivision, 
+                        postal_zip_code: shippingData.zip, 
+                        country: shippingData.shippingCountry },
             fulfillment: { shipping_method: shippingData.shippingOption },
             payment: {
             gateway: 'stripe',
@@ -42,7 +52,7 @@ const PaymentForm = ({ checkoutToken, nextStep, backStep, shippingData, onCaptur
 
     return (
         <>
-        <Review checkoutToken={checkoutToken} />
+        <Review checkoutToken={checkoutToken} shippingData={shippingData} />
         <Divider />
         <Typography variant="h6" gutterBottom style={{ margin: '20px 0' }}>Payment method</Typography>
         <Elements stripe={stripePromise}>
@@ -53,7 +63,7 @@ const PaymentForm = ({ checkoutToken, nextStep, backStep, shippingData, onCaptur
                 <div style={{ display: 'flex', justifyContent: 'space-between' }}>
                 <Button variant="outlined" onClick={backStep}>Back</Button>
                 <Button type="submit" variant="contained" disabled={!stripe} color="primary">
-                    Pay {checkoutToken.live.subtotal.formatted_with_symbol}
+                    Pay ${total}
                 </Button>
                 </div>
             </form>
